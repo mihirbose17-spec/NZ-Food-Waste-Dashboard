@@ -17,7 +17,7 @@ secure_api_key = os.getenv("GEMINI_API_KEY")
 # Only initialize the AI model if the toggle is ON
 if USE_LIVE_AI and secure_api_key:
     genai.configure(api_key=secure_api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash-latest',
+    model = genai.GenerativeModel('gemini-3.5-flash',
                                   generation_config={"response_mime_type": "application/json"})
 
 app = FastAPI()
