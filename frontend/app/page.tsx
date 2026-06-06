@@ -154,14 +154,14 @@ export default function AppContainer() {
           </h2>
           {prediction ? (
             <div className="space-y-3 text-sm">
-              <p><strong className="text-slate-600">Sector:</strong> {prediction.sector}</p>
-              <p><strong className="text-slate-600">Flagged:</strong> {prediction.flagged_category}</p>
-              <p><strong className="text-slate-600">Predicted Excess:</strong> <span className="text-red-600 font-bold">{prediction.predicted_excess_tonnes} Tonnes</span></p>
+              <p><strong className="text-slate-800">Sector: </strong> <span className="text-slate-900 font-semibold">{prediction.sector}</span></p>
+              <p><strong className="text-slate-800">Flagged: </strong> <span className="text-slate-900 font-semibold">{prediction.flagged_category}</span></p>
+              <p><strong className="text-slate-800">Predicted Excess: </strong> <span className="text-red-600 font-bold">{prediction.predicted_excess_tonnes} Tonnes</span></p>
               <div className="mt-4 bg-[#00529B]/5 p-3 rounded-md border border-[#00529B]/20">
-                <p className="text-slate-700"><strong className="text-[#00529B]">AI Action:</strong> {prediction.ai_recommendation}</p>
+                <p className="text-slate-900 font-medium"><strong className="text-[#00529B] font-bold">AI Action: </strong> {prediction.ai_recommendation}</p>
               </div>
             </div>
-          ) : <p className="text-slate-400 animate-pulse">Connecting to node...</p>}
+          ) : <p className="text-slate-500 animate-pulse font-medium">Connecting to node...</p>}
         </div>
 
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
@@ -175,14 +175,14 @@ export default function AppContainer() {
           </h2>
           {redistribution ? (
             <div className="space-y-3 text-sm">
-              <p><strong className="text-slate-600">Source:</strong> {redistribution.source}</p>
-              <p><strong className="text-slate-600">Available:</strong> {redistribution.available_tonnes} Tonnes</p>
-              <p><strong className="text-slate-600">Matched Buyer:</strong> <span className="text-green-700 font-bold">{redistribution.matched_buyer}</span></p>
+              <p><strong className="text-slate-800">Source: </strong> <span className="text-slate-900 font-semibold">{redistribution.source}</span></p>
+              <p><strong className="text-slate-800">Available: </strong> <span className="text-slate-900 font-semibold">{redistribution.available_tonnes} Tonnes</span></p>
+              <p><strong className="text-slate-800">Matched Buyer: </strong> <span className="text-green-700 font-bold">{redistribution.matched_buyer}</span></p>
               <div className="mt-4 bg-orange-500/5 p-3 rounded-md border border-orange-500/20">
-                <p className="text-slate-700"><strong className="text-orange-600">Logistics:</strong> {redistribution.logistics_status}</p>
+                <p className="text-slate-900 font-medium"><strong className="text-orange-700 font-bold">Logistics: </strong> {redistribution.logistics_status}</p>
               </div>
             </div>
-          ) : <p className="text-slate-400 animate-pulse">Routing logistics...</p>}
+          ) : <p className="text-slate-500 animate-pulse font-medium">Routing logistics...</p>}
         </div>
 
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
@@ -196,14 +196,14 @@ export default function AppContainer() {
           </h2>
           {conversion ? (
             <div className="space-y-3 text-sm">
-              <p><strong className="text-slate-600">Waste Type:</strong> {conversion.waste_type}</p>
-              <p><strong className="text-slate-600">Volume:</strong> {conversion.volume_tonnes} Tonnes</p>
-              <p><strong className="text-slate-600">Destination:</strong> <span className="text-yellow-700 font-bold">{conversion.destination}</span></p>
+              <p><strong className="text-slate-800">Waste Type: </strong> <span className="text-slate-900 font-semibold">{conversion.waste_type}</span></p>
+              <p><strong className="text-slate-800">Volume: </strong> <span className="text-slate-900 font-semibold">{conversion.volume_tonnes} Tonnes</span></p>
+              <p><strong className="text-slate-800">Destination: </strong> <span className="text-yellow-700 font-bold">{conversion.destination}</span></p>
               <div className="mt-4 bg-yellow-500/5 p-3 rounded-md border border-yellow-500/20">
-                <p className="text-slate-700"><strong className="text-yellow-700">Impact:</strong> {conversion.environmental_impact}</p>
+                <p className="text-slate-900 font-medium"><strong className="text-yellow-700 font-bold">Impact: </strong> {conversion.environmental_impact}</p>
               </div>
             </div>
-          ) : <p className="text-slate-400 animate-pulse">Calculating yield...</p>}
+          ) : <p className="text-slate-500 animate-pulse font-medium">Calculating yield...</p>}
         </div>
       </div>
 
