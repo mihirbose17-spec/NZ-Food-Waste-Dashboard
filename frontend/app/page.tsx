@@ -20,8 +20,41 @@ const baseHistoricalData = [
   { year: '2026 (Live)', "Primary Production": 461, "Household Spoilage": 364, "Retail & Logistics": 393 },
 ];
 
+// High-quality placeholder data for Standby Mode
+const placeholderPrediction: Prediction = {
+  sector: "Retail - Countdown Metro Auckland",
+  flagged_category: "Stone Fruit (Central Otago Nectarines)",
+  predicted_excess_tonnes: 12,
+  ai_recommendation: "Reduce next week's procurement of Central Otago Nectarines by 18% to align with unseasonably cool weather forecasts and declining weekend consumer demand."
+};
+const placeholderRedistribution: Redistribution = {
+  source: "Primary Production - Central Otago Stonefruit Orchard",
+  available_tonnes: 4.2,
+  matched_buyer: "Commercial Freeze-Drying and Fruit Powder Manufacturer",
+  logistics_status: "Dynamic route-matching has dispatched a local temperature-controlled courier utilizing spare capacity on an existing return journey."
+};
+const placeholderConversion: Conversion = {
+  waste_type: "Reject kiwifruit pulp from Bay of Plenty grading facilities",
+  volume_tonnes: 4.8,
+  destination: "Ecogas Reporoa Organics Processing Facility",
+  environmental_impact: "Diverting this organic pulp from landfill prevents the emission of approximately 9.1 tonnes of carbon dioxide equivalent (CO2e) into the atmosphere."
+};
+const placeholderBrief: Brief = {
+  title: "Strategic AI Intervention: National Food Rescue",
+  executive_summary: "Based on real-time data analysis, optimizing logistics between regional farms and commercial processors presents the highest immediate ROI for waste reduction.",
+  action_steps: [
+    "Reroute 4.2 tonnes of stonefruit from Central Otago to the commercial freeze-drying facility in Christchurch.",
+    "Adjust automated procurement parameters for Auckland Metro Countdown to reflect an 18% decrease in stonefruit demand.",
+    "Dispatch spare logistics capacity to Bay of Plenty grading facilities for pulp retrieval."
+  ],
+  projected_impact: "Prevents 9.1 tonnes of CO2e and creates $14,200 in secondary market value."
+};
+
 export default function AppContainer() {
   const [activeView, setActiveView] = useState<'dashboard' | 'about' | 'architecture'>('dashboard');
+
+  // NEW: State for the AI Toggle Switch (Off by default)
+  const [isLiveMode, setIsLiveMode] = useState(false);
 
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [redistribution, setRedistribution] = useState<Redistribution | null>(null);
@@ -30,12 +63,23 @@ export default function AppContainer() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [graphData, setGraphData] = useState(baseHistoricalData);
 
-  // Securely fetch the backend URL from the vault, falling back to localhost if not found
   const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
+  // Refactored to handle Standby vs Live data routing
   const fetchLiveData = () => {
     setPrediction(null); setRedistribution(null); setConversion(null); setBrief(null);
-    // Notice the backticks (`) used here to properly inject the API_URL variable
+
+    if (!isLiveMode) {
+      // If Standby, load realistic placeholders instantly
+      setTimeout(() => {
+        setPrediction(placeholderPrediction);
+        setRedistribution(placeholderRedistribution);
+        setConversion(placeholderConversion);
+      }, 600); // Tiny delay to feel like a real system loading
+      return;
+    }
+
+    // If Live, hit the Render API and Google Gemini
     fetch(`${API_URL}/api/predict`).then(res => res.json()).then(setPrediction).catch(console.error);
     fetch(`${API_URL}/api/redistribute`).then(res => res.json()).then(setRedistribution).catch(console.error);
     fetch(`${API_URL}/api/convert`).then(res => res.json()).then(setConversion).catch(console.error);
@@ -44,6 +88,15 @@ export default function AppContainer() {
   const generateAIBrief = () => {
     setIsGenerating(true);
     setBrief(null);
+
+    if (!isLiveMode) {
+      setTimeout(() => {
+        setBrief(placeholderBrief);
+        setIsGenerating(false);
+      }, 1500);
+      return;
+    }
+
     fetch(`${API_URL}/api/generate-brief`)
       .then(res => res.json())
       .then(data => { setBrief(data); setIsGenerating(false); })
@@ -52,10 +105,8 @@ export default function AppContainer() {
 
   const downloadDocx = async () => {
     if (!brief) return;
-
     const doc = new Document({
-      sections: [
-        {
+      sections: [{
           properties: {},
           children: [
             new Paragraph({ text: brief.title, heading: HeadingLevel.TITLE, spacing: { after: 300 } }),
@@ -66,22 +117,18 @@ export default function AppContainer() {
             new Paragraph({ text: "Projected Business Impact", heading: HeadingLevel.HEADING_1, spacing: { before: 200, after: 200 } }),
             new Paragraph({ text: brief.projected_impact }),
           ],
-        },
-      ],
+      }],
     });
 
     const blob = await Packer.toBlob(doc);
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `ACFS_Strategy_${new Date().toISOString().split('T')[0]}.docx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    link.href = url; link.download = `ACFS_Strategy_${new Date().toISOString().split('T')[0]}.docx`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link); window.URL.revokeObjectURL(url);
   };
 
-  useEffect(() => { fetchLiveData(); }, []);
+  // Run a fetch whenever the toggle switch changes
+  useEffect(() => { fetchLiveData(); }, [isLiveMode]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -107,19 +154,34 @@ export default function AppContainer() {
           <h1 className="text-4xl font-bold text-slate-800 tracking-tight">System Control Tower</h1>
           <p className="text-slate-500 mt-2 text-lg">Live AI-Enabled Value Chain Metrics</p>
         </div>
-        <button onClick={fetchLiveData} className="bg-[#00529B] text-white px-6 py-2 rounded-md hover:bg-blue-800 transition-colors shadow-sm font-semibold flex items-center gap-2">
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-          </span>
-          Refresh Live Feeds
-        </button>
+
+        {/* TOP CONTROLS: Toggle Switch and Refresh Button */}
+        <div className="flex items-center gap-4">
+          <label className="flex items-center cursor-pointer bg-white px-4 py-2 rounded-md border border-gray-200 shadow-sm transition-all hover:shadow-md">
+            <div className="relative">
+              <input type="checkbox" className="sr-only" checked={isLiveMode} onChange={(e) => setIsLiveMode(e.target.checked)} />
+              <div className={`block w-12 h-6 rounded-full transition-colors ${isLiveMode ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+              <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${isLiveMode ? 'transform translate-x-6' : ''}`}></div>
+            </div>
+            <div className="ml-3 text-sm font-bold text-slate-700 w-24">
+              AI: {isLiveMode ? <span className="text-green-600">LIVE</span> : <span className="text-slate-500">STANDBY</span>}
+            </div>
+          </label>
+
+          <button onClick={fetchLiveData} className="bg-[#00529B] text-white px-6 py-2.5 rounded-md hover:bg-blue-800 transition-colors shadow-sm font-semibold flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLiveMode ? 'bg-green-400' : 'bg-slate-400'}`}></span>
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${isLiveMode ? 'bg-green-500' : 'bg-slate-400'}`}></span>
+            </span>
+            Refresh Feeds
+          </button>
+        </div>
       </header>
 
       <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm mb-10 relative">
-        <div className="absolute top-8 right-8 flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-semibold border border-green-200 shadow-sm">
-           <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-           Live Feed Active
+        <div className={`absolute top-8 right-8 flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border shadow-sm ${isLiveMode ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+           <div className={`h-2 w-2 rounded-full animate-pulse ${isLiveMode ? 'bg-green-500' : 'bg-slate-400'}`}></div>
+           {isLiveMode ? 'Live Data Feed' : 'Local System Feed'}
         </div>
         <h2 className="text-2xl font-bold text-[#00529B] mb-2">Macro View: Real-Time National Tracking (2018 - 2026)</h2>
         <p className="text-slate-600 text-sm mb-8">Aggregating historical systemic data alongside live, simulated IoT sensor feeds across Aotearoa.</p>
@@ -146,11 +208,7 @@ export default function AppContainer() {
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
           <h2 className="text-xl font-semibold text-red-600 mb-4 border-b border-gray-100 pb-2 flex items-center gap-2">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-            </span>
-            Live Alert: Retail Overstock
+            <span className="mr-1">●</span> Live Alert: Retail Overstock
           </h2>
           {prediction ? (
             <div className="space-y-3 text-sm">
@@ -167,11 +225,7 @@ export default function AppContainer() {
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
           <h2 className="text-xl font-semibold text-orange-500 mb-4 border-b border-gray-100 pb-2 flex items-center gap-2">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
-            </span>
-            Live Alert: Farm Surplus
+             <span className="mr-1">●</span> Live Alert: Farm Surplus
           </h2>
           {redistribution ? (
             <div className="space-y-3 text-sm">
@@ -188,11 +242,7 @@ export default function AppContainer() {
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
           <h2 className="text-xl font-semibold text-yellow-600 mb-4 border-b border-gray-100 pb-2 flex items-center gap-2">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
-            </span>
-            Live Alert: Bioconversion
+             <span className="mr-1">●</span> Live Alert: Bioconversion
           </h2>
           {conversion ? (
             <div className="space-y-3 text-sm">
@@ -223,12 +273,8 @@ export default function AppContainer() {
             </ul>
             <h4 className="font-semibold text-[#00529B] mb-2 border-b border-gray-200 pb-1">Projected Business Impact:</h4>
             <p className="text-green-700 font-bold bg-green-50 p-3 rounded mb-6">{brief.projected_impact}</p>
-
             <div className="border-t border-gray-200 pt-4 text-center">
-              <button
-                onClick={downloadDocx}
-                className="inline-flex items-center gap-2 bg-white border-2 border-[#00529B] text-[#00529B] px-6 py-2 rounded-md hover:bg-[#00529B] hover:text-white transition-colors font-bold shadow-sm"
-              >
+              <button onClick={downloadDocx} className="inline-flex items-center gap-2 bg-white border-2 border-[#00529B] text-[#00529B] px-6 py-2 rounded-md hover:bg-[#00529B] hover:text-white transition-colors font-bold shadow-sm">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Export as Word Document
               </button>
@@ -239,16 +285,13 @@ export default function AppContainer() {
     </div>
   );
 
+  // ... (About and Architecture renders remain the same)
   const renderAbout = () => (
     <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-500">
       <h1 className="text-4xl font-bold text-slate-800 mb-6 tracking-tight">About the Project</h1>
       <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm space-y-6 text-slate-700 text-lg leading-relaxed">
-        <p>
-          <strong className="text-[#00529B]">The Crisis:</strong> Aotearoa New Zealand wastes approximately 1.22 million tonnes of food annually. This represents a catastrophic failure of the supply chain, creating massive economic losses and driving significant greenhouse gas emissions through landfill methane.
-        </p>
-        <p>
-          <strong className="text-[#00529B]">The Solution:</strong> The Aotearoa Circular Food Systems (ACFS) dashboard is a digital venture prototype built for the <em>Managing in Global Context</em> curriculum. It treats food waste not as an inevitability, but as a solvable data problem.
-        </p>
+        <p><strong className="text-[#00529B]">The Crisis:</strong> Aotearoa New Zealand wastes approximately 1.22 million tonnes of food annually. This represents a catastrophic failure of the supply chain, creating massive economic losses and driving significant greenhouse gas emissions through landfill methane.</p>
+        <p><strong className="text-[#00529B]">The Solution:</strong> The Aotearoa Circular Food Systems (ACFS) dashboard is a digital venture prototype built for the <em>Managing in Global Context</em> curriculum. It treats food waste not as an inevitability, but as a solvable data problem.</p>
         <div className="bg-slate-50 p-6 rounded-md border border-slate-200 my-8">
           <h3 className="text-xl font-bold text-slate-800 mb-4">Our Three-Pillar Approach:</h3>
           <ul className="list-disc pl-6 space-y-3">
@@ -265,78 +308,47 @@ export default function AppContainer() {
     <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-500">
       <h1 className="text-4xl font-bold text-slate-800 mb-6 tracking-tight">Dashboard Architecture</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
         <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm">
           <div className="h-12 w-12 bg-blue-100 text-blue-700 flex items-center justify-center rounded-lg mb-4 text-2xl font-bold">1</div>
           <h3 className="text-2xl font-bold text-[#00529B] mb-3">The Frontend Face</h3>
           <p className="text-slate-600 mb-4">Built on <strong>React & Next.js 14</strong>, this Single Page Application acts as the control tower. It uses standard API fetch logic to poll the backend, while dynamically animating state changes using <strong>Recharts</strong> to simulate live IoT sensors.</p>
         </div>
-
         <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm">
           <div className="h-12 w-12 bg-green-100 text-green-700 flex items-center justify-center rounded-lg mb-4 text-2xl font-bold">2</div>
           <h3 className="text-2xl font-bold text-[#00529B] mb-3">The Python Brain</h3>
           <p className="text-slate-600 mb-4">The engine runs on <strong>FastAPI (Python)</strong>. It hosts four distinct digital addresses (endpoints) that act as the middleman between the web browser and the artificial intelligence, securely managing traffic.</p>
         </div>
-
         <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm md:col-span-2">
           <div className="h-12 w-12 bg-purple-100 text-purple-700 flex items-center justify-center rounded-lg mb-4 text-2xl font-bold">3</div>
           <h3 className="text-2xl font-bold text-[#00529B] mb-3">Gemini LLM Integration & Security</h3>
           <p className="text-slate-600 mb-4">The data shown is not static. The Python backend communicates directly with the <strong>Google Gemini 1.5 API</strong>. Every time a refresh is requested, strict JSON schema prompts are sent to the AI to generate completely unique, mathematically sound New Zealand supply chain scenarios on the fly. The API credentials are encrypted locally via a <strong>.env vault</strong>, isolating configuration from the main codebase for enterprise-grade deployment readiness.</p>
         </div>
-
       </div>
     </div>
   );
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
-
       <aside className="w-72 bg-[#00529B] text-white flex flex-col shadow-xl z-20">
         <div className="p-6 border-b border-blue-800/50 flex flex-col items-center text-center">
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Flag_of_New_Zealand.svg"
-            alt="New Zealand Flag"
-            className="w-24 mb-4 rounded shadow-md border border-white/10"
-          />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Flag_of_New_Zealand.svg" alt="New Zealand Flag" className="w-24 mb-4 rounded shadow-md border border-white/10" />
           <h2 className="text-2xl font-bold tracking-tight">ACFS Hub</h2>
           <p className="text-blue-200 text-sm mt-1">Aotearoa Circular Food</p>
         </div>
-
         <nav className="flex-1 p-4 space-y-3 mt-4">
-          <button
-            onClick={() => setActiveView('dashboard')}
-            className={`w-full text-left px-5 py-3 rounded-lg transition-all duration-200 ${activeView === 'dashboard' ? 'bg-white text-[#00529B] font-bold shadow-md transform scale-105' : 'hover:bg-blue-800/80 text-blue-50'}`}
-          >
-            System Dashboard
-          </button>
-
-          <button
-            onClick={() => setActiveView('about')}
-            className={`w-full text-left px-5 py-3 rounded-lg transition-all duration-200 ${activeView === 'about' ? 'bg-white text-[#00529B] font-bold shadow-md transform scale-105' : 'hover:bg-blue-800/80 text-blue-50'}`}
-          >
-            About the Project
-          </button>
-
-          <button
-            onClick={() => setActiveView('architecture')}
-            className={`w-full text-left px-5 py-3 rounded-lg transition-all duration-200 ${activeView === 'architecture' ? 'bg-white text-[#00529B] font-bold shadow-md transform scale-105' : 'hover:bg-blue-800/80 text-blue-50'}`}
-          >
-            Dashboard Architecture
-          </button>
+          <button onClick={() => setActiveView('dashboard')} className={`w-full text-left px-5 py-3 rounded-lg transition-all duration-200 ${activeView === 'dashboard' ? 'bg-white text-[#00529B] font-bold shadow-md transform scale-105' : 'hover:bg-blue-800/80 text-blue-50'}`}>System Dashboard</button>
+          <button onClick={() => setActiveView('about')} className={`w-full text-left px-5 py-3 rounded-lg transition-all duration-200 ${activeView === 'about' ? 'bg-white text-[#00529B] font-bold shadow-md transform scale-105' : 'hover:bg-blue-800/80 text-blue-50'}`}>About the Project</button>
+          <button onClick={() => setActiveView('architecture')} className={`w-full text-left px-5 py-3 rounded-lg transition-all duration-200 ${activeView === 'architecture' ? 'bg-white text-[#00529B] font-bold shadow-md transform scale-105' : 'hover:bg-blue-800/80 text-blue-50'}`}>Dashboard Architecture</button>
         </nav>
-
         <div className="p-4 border-t border-blue-800/50 text-xs text-blue-300 text-center">
-          Managing in Global Context
-          <br/>Venture Prototype v1.0
+          Managing in Global Context<br/>Venture Prototype v1.0
         </div>
       </aside>
-
       <main className="flex-1 overflow-y-auto bg-slate-50">
         {activeView === 'dashboard' && renderDashboard()}
         {activeView === 'about' && renderAbout()}
         {activeView === 'architecture' && renderArchitecture()}
       </main>
-
     </div>
   );
 }
